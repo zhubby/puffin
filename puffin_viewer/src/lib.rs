@@ -143,16 +143,16 @@ impl PuffinViewer {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn ui_menu_bar(&mut self, ui: &mut egui::Ui) {
-        if ui.input(|i| i.modifiers.command && i.key_pressed(egui::Key::O)) {
+    fn ui_menu_bar(&mut self, ctx: &egui::Context) {
+        if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::O)) {
             self.open_dialog();
         }
 
-        if ui.input(|i| i.modifiers.command && i.key_pressed(egui::Key::S)) {
+        if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::S)) {
             self.save_dialog();
         }
 
-        egui::Panel::top("menu_bar").show_inside(ui, |ui| {
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 egui::widgets::global_theme_preference_switch(ui);
 
@@ -166,7 +166,7 @@ impl PuffinViewer {
                     }
 
                     if ui.button("Quit").clicked() {
-                        ui.send_viewport_cmd(egui::ViewportCommand::Close);
+                        ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                     }
                 });
                 ui.menu_button("View", |ui| {
@@ -189,27 +189,24 @@ impl PuffinViewer {
         }
     }
 
-    fn ui_file_drag_and_drop(&mut self, ui: &egui::Ui) {
-        use egui::*;
-
+    fn ui_file_drag_and_drop(&mut self, ctx: &egui::Context) {
         // Preview hovering files:
-        if !ui.input(|i| i.raw.hovered_files.is_empty()) {
-            let painter =
-                ui.layer_painter(LayerId::new(Order::Foreground, Id::new("file_drop_target")));
+        if !ctx.input(|i| i.raw.hovered_files.is_empty()) {
+            let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::new("file_drop_target")));
 
-            let content_rect = ui.input(|i| i.content_rect());
-            painter.rect_filled(content_rect, 0.0, Color32::from_black_alpha(192));
+            let content_rect = ctx.input(|i| i.content_rect());
+            painter.rect_filled(content_rect, 0.0, egui::Color32::from_black_alpha(192));
             painter.text(
                 content_rect.center(),
-                Align2::CENTER_CENTER,
+                egui::Align2::CENTER_CENTER,
                 "Drop to open .puffin file",
-                TextStyle::Heading.resolve(ui.style()),
-                Color32::WHITE,
+                egui::TextStyle::Heading.resolve(&ctx.style()),
+                egui::Color32::WHITE,
             );
         }
 
         // Collect dropped files:
-        ui.input(|i| {
+        ctx.input(|i| {
             if !i.raw.dropped_files.is_empty() {
                 for file in i.raw.dropped_files.iter() {
                     if let Some(path) = &file.path {
@@ -230,18 +227,18 @@ impl eframe::App for PuffinViewer {
         eframe::set_value(storage, eframe::APP_KEY, &self.profiler_ui);
     }
 
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         puffin::GlobalProfiler::lock().new_frame();
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            self.ui_menu_bar(ui);
-            self.ui_kbd_shortcuts_quit(ui);
+            self.ui_menu_bar(ctx);
+            self.ui_kbd_shortcuts_quit(ctx);
         }
 
         #[cfg(target_arch = "wasm32")]
         {
-            egui::Panel::top("menu_bar").show_inside(ui, |ui| {
+            egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
                 ui.heading("Puffin Viewer, on the web");
                 ui.horizontal_wrapped(|ui| {
                     ui.label("It is recommended that you instead use the native version: ");
@@ -251,7 +248,7 @@ impl eframe::App for PuffinViewer {
             });
         }
 
-        egui::Panel::bottom("info_bar").show_inside(ui, |ui| {
+        egui::TopBottomPanel::bottom("info_bar").show(ctx, |ui| {
             if let Some(error) = &self.error {
                 ui.colored_label(egui::Color32::RED, error);
                 ui.add_space(4.0);
@@ -264,7 +261,7 @@ impl eframe::App for PuffinViewer {
             }
         });
 
-        egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::CentralPanel::default().show(ctx, |ui| {
             if self.profile_self {
                 self.global_profiler_ui.ui(ui);
             } else {
@@ -283,7 +280,7 @@ impl eframe::App for PuffinViewer {
             }
         });
 
-        self.ui_file_drag_and_drop(ui);
+        self.ui_file_drag_and_drop(ctx);
     }
 }
 

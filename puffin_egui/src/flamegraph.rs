@@ -299,7 +299,7 @@ pub fn ui(
             };
 
             let info = Info {
-                ctx: ui.clone(),
+                ctx: ui.ctx().clone(),
                 canvas,
                 response,
                 painter: ui.painter_at(canvas),
